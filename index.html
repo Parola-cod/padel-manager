@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Padel Manager BRT</title>
+  <meta name="theme-color" content="#d4111e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <style>
+    :root { --c:#d4111e; --c2:#7f1d1d; }
+    * { box-sizing:border-box; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+    body { margin:0; background:#f7fafc; color:#0f172a; }
+    header { display:flex; gap:12px; align-items:center; padding:16px; background:#fff; box-shadow:0 1px 0 rgba(15,23,42,.06); position:sticky; top:0; z-index:10; }
+    h1 { font-size:18px; margin:0; }
+    .wrap { padding:16px; max-width:980px; margin:0 auto; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:12px; }
+    .row { display:grid; gap:12px; }
+    @media (min-width:800px) { .row-2 { grid-template-columns:1fr 1fr; } }
+    label { font-size:12px; color:#334155; display:block; margin-bottom:4px; }
+    input,select,textarea { width:100%; padding:10px; border-radius:10px; border:1px solid #d1d5db; }
+    button { background:var(--c); color:#fff; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; }
+    button.ghost { background:transparent; color:#334155; border:1px solid #cbd5e1; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { padding:8px; text-align:left; }
+    thead { background:#f1f5f9; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:999px; background:#f1f5f9; font-size:12px; }
+    .grid { display:grid; gap:8px; }
+    .g-2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .muted { color:#64748b; font-size:12px; }
+    .mb8 { margin-bottom:8px; }
+    .mt8 { margin-top:8px; }
+    .mt16 { margin-top:16px; }
+    .tabs { display:flex; border-bottom:1px solid #e2e8f0; gap:8px; }
+    .tab { background:#fff; color:#334155; border:1px solid #e2e8f0; padding:8px 12px; border-radius:10px 10px 0 0; cursor:pointer; }
+    .tab.active { background:#fde2e2; color:#7f1d1d; border-bottom-color:transparent; font-weight:600; }
+    .tabpanes { background:#fff; border:1px solid #e2e8f0; border-top:none; border-radius:0 12px 12px 12px; padding:12px; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#ffe4e6; font-size:12px; }
+    .pill-ok { background:#fde2e2; }
+    .pill-warn { background:#ffe6cc; }
+    .pill-bye { background:#e2e8f0; }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="/logo-padel.png" alt="Logo" width="36" height="36" style="border-radius:8px" />
+    <div>
+      <h1>Padel Manager BRT</h1>
+      <div class="muted">Supabase realtime • Admin scrive / Utenti leggono • PWA</div>
+    </div>
+    <div style="margin-left:auto" class="grid g-2" id="topActions">
+      <button id="installBtn" style="display:none">Installa l'app</button>
+      <button id="loginBtn" class="ghost">Entra come admin</button>
+      <button id="logoutBtn" class="ghost" style="display:none" title="Esci dalla modalità Admin">Esci</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="card" id="roleBanner" style="border-style:dashed;border-color:#fda4af;background:#fff1f2;"></div>
+
+    <!-- SOLO ADMIN -->
+    <div id="setupCard" class="card row row-2 mt16">
+      <div>
+        <label>Nome torneo</label>
+        <input id="tname" placeholder="Es. Open d'Autunno" />
+      </div>
+      <div>
+        <label>Formato</label>
+        <select id="tformat">
+          <option value="Girone">Girone unico</option>
+          <option value="Eliminazione diretta">Eliminazione diretta</option>
+        </select>
+      </div>
+      <div>
+        <label>Set (best of)</label>
+        <select id="tbestof">
+          <option value="3">3 set</option>
+          <option value="1">1 set</option>
+        </select>
+      </div>
+      <div class="row g-2">
+        <button id="genBtn">Genera calendario</button>
+        <button id="resetBtn" class="ghost">Azzera</button>
+      </div>
+    </div>
+
+    <div id="adminCards" class="row row-2 mt16">
+      <div id="playersCard" class="card">
+        <div class="row">
+          <div class="row g-2">
+            <div>
+              <label>Giocatore</label>
+              <input id="pname" placeholder="Nome" />
+            </div>
+            <div>
+              <label>Rating (1-5)</label>
+              <input id="prating" type="number" min="1" max="5" placeholder="(opzionale)" />
+            </div>
+          </div>
+          <button id="addPlayer">Aggiungi giocatore</button>
+        </div>
+        <div class="mt8" id="playersList"></div>
+      </div>
+
+      <div id="teamsCard" class="card">
+        <div class="row">
+          <div class="row g-2">
+            <div>
+              <label>Giocatore 1</label>
+              <select id="teamP1"></select>
+            </div>
+            <div>
+              <label>Giocatore 2</label>
+              <select id="teamP2"></select>
+            </div>
+          </div>
+          <div>
+            <label>Nome squadra (opzionale)</label>
+            <input id="teamName" placeholder="Es. Rossi / Bianchi" />
+          </div>
+          <button id="addTeam">Crea squadra</button>
+        </div>
+        <div class="mt8" id="teamsList"></div>
+      </div>
+    </div>
+
+    <!-- TABS PARTITE / CLASSIFICA -->
+    <div class="mt16">
+      <div class="tabs">
+        <div class="tab" data-tab="partite">Partite</div>
+        <div class="tab" data-tab="classifica">Classifica</div>
+      </div>
+
+      <div class="tabpanes">
+        <div id="tab-partite">
+          <div class="card" style="border:none; padding:0;">
+            <div class="row g-2 mb8">
+              <div>
+                <label>Filtra per giornata</label>
+                <select id="filterMatchday"></select>
+              </div>
+            </div>
+            <div id="matches"></div>
+          </div>
+        </div>
+
+        <div id="tab-classifica" style="display:none">
+          <div class="card" style="border:none; padding:0;">
+            <div class="muted">Valida per formato Girone</div>
+            <div id="standings"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT APP -->
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    // INSERISCI LE TUE CHIAVI QUI
+    const supabaseUrl = "https://qrqpfektlgecupuhvotj.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFycXBmZWt0bGdlY3VwdWh2b3RqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzNTMwOTIsImV4cCI6MjA3NjkyOTA5Mn0.Yv168Sr134HY7qi8PWuRByAQNHGkrvnLHmEGfF7dsjQ";
+    const sb = createClient(supabaseUrl, supabaseKey);
+
+    const state = {
+      isAdmin: false,
+      tournament: { name: "Torneo di Padel", format: "Girone", bestOf: 3 },
+      players: [],
+      teams: [],
+      matches: []
+    };
+
+    const el = (id) => document.getElementById(id);
+
+    // --- LOGIN ADMIN (password interna torneo)
+    async function tryAdminLogin() {
+      const pass = prompt("Password admin?");
+      if (!pass) return;
+
+      const { data, error } = await sb
+        .from("admin_secrets")
+        .select("passcode")
+        .limit(1);
+
+      if (error) {
+        alert("Errore auth");
+        console.error(error);
+        return;
+      }
+
+      const serverPass = data && data[0] && data[0].passcode;
+      if (serverPass && serverPass === pass) {
+        state.isAdmin = true;
+        alert("Modalità Amministratore attiva ✅");
+      } else {
+        alert("Password errata");
+      }
+
+      applyRoleRestrictions();
+      setRoleBanner();
+      renderAll();
+    }
+
+    function adminLogout() {
+      state.isAdmin = false;
+      alert("Sei uscito dalla modalità Admin.");
+      applyRoleRestrictions();
+      setRoleBanner();
+      renderAll();
+    }
+
+    function setRoleBanner() {
+      const b = el("roleBanner");
+      const loginBtn  = el("loginBtn");
+      const logoutBtn = el("logoutBtn");
+      if (state.isAdmin) {
+        b.textContent = "Modalità Amministratore: puoi modificare torneo, giocatori, squadre e calendario.";
+        loginBtn.style.display  = "none";
+        logoutBtn.style.display = "inline-block";
+      } else {
+        b.textContent = "Modalità Utente: sola visualizzazione dei dati.";
+        loginBtn.style.display  = "inline-block";
+        logoutBtn.style.display = "none";
+      }
+    }
+
+    function applyRoleRestrictions() {
+      const setupCard  = el("setupCard");
+      const adminCards = el("adminCards");
+      if (state.isAdmin) {
+        setupCard.style.display  = "";
+        adminCards.style.display = "";
+      } else {
+        setupCard.style.display  = "none";
+        adminCards.style.display = "none";
+      }
+    }
+
+    // --- CARICAMENTO DATI INIZIALI
+    async function loadAllData() {
+      // tabella "tournament": una riga con id = 1
+      const { data: tData } = await sb
+        .from("tournament")
+        .select("*")
+        .eq("id", 1)
+        .single();
+
+      if (tData) {
+        state.tournament = {
+          name:   tData.name        || state.tournament.name,
+          format: tData.format      || state.tournament.format,
+          bestOf: tData.best_of_set || state.tournament.bestOf
+        };
+      }
+
+      const { data: players } = await sb
+        .from("players")
+        .select("*")
+        .order("name", { ascending: true });
+      if (players) state.players = players;
+
+      const { data: teams } = await sb
+        .from("teams")
+        .select("*")
+        .order("name", { ascending: true });
+      if (teams) state.teams = teams;
+
+      const { data: matches } = await sb
+        .from("matches")
+        .select("*")
+        .order("matchday", { ascending: true });
+      if (matches) state.matches = matches;
+
+      syncTopForm();
+      renderAll();
+    }
+
+    // --- REALTIME (partite aggiornate live)
+    function startRealtime() {
+      sb.channel('live-matches')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, payload => {
+          reloadMatches();
+        })
+        .subscribe();
+    }
+
+    async function reloadMatches() {
+      const { data: matches } = await sb
+        .from("matches")
+        .select("*")
+        .order("matchday", { ascending: true });
+      if (matches) {
+        state.matches = matches;
+        renderMatches();
+        renderStandings();
+        fillMatchdayFilter('filterMatchday');
+      }
+    }
+
+    // --- SALVATAGGI SOLO ADMIN
+    async function saveTournamentMeta() {
+      if (!state.isAdmin) return;
+      const name   = el('tname').value || "Torneo di Padel";
+      const format = el('tformat').value || "Girone";
+      const bestOf = Number(el('tbestof').value) || 3;
+
+      await sb
+        .from("tournament")
+        .update({ name, format, best_of_set: bestOf })
+        .eq("id", 1);
+
+      state.tournament = { name, format, bestOf };
+      renderStandings();
+    }
+
+    async function addPlayer() {
+      if (!state.isAdmin) return;
+      const name   = el('pname').value.trim();
+      const rating = el('prating').value.trim();
+      if (!name) return;
+      await sb.from("players").insert([{
+        name,
+        rating: rating ? Number(rating) : null
+      }]);
+      el('pname').value   = '';
+      el('prating').value = '';
+      const { data: players } = await sb
+        .from("players")
+        .select("*")
+        .order("name", { ascending:true });
+      if (players) state.players = players;
+      renderPlayers();
+      fillSelectors();
+    }
+
+    async function addTeam() {
+      if (!state.isAdmin) return;
+      const p1 = el('teamP1').value;
+      const p2 = el('teamP2').value;
+      if (!p1) return;
+      const cname = el('teamName').value.trim();
+      const p1Name = state.players.find(x => String(x.id) === String(p1))?.name || '';
+      const p2Name = state.players.find(x => String(x.id) === String(p2))?.name || '';
+      const displayName = cname || [p1Name, p2Name].filter(Boolean).join(' / ');
+
+      await sb.from("teams").insert([{
+        name: displayName,
+        player_ids: [p1, p2].filter(Boolean)
+      }]);
+
+      el('teamName').value = '';
+      el('teamP1').value   = '';
+      el('teamP2').value   = '';
+      const { data: teams } = await sb
+        .from("teams")
+        .select("*")
+        .order("name", { ascending:true });
+      if (teams) state.teams = teams;
+      renderTeams();
+      fillSelectors();
+    }
+
+    // GENERA CALENDARIO GIRONE UNICO
+    function generateRoundRobin(teams, bestOf) {
+      const base = [...teams];
+      if (base.length < 2) return [];
+      if (base.length % 2 === 1) base.push({ id: 'BYE', name: 'BYE', player_ids: [] });
+      const n = base.length;
+      const rounds = n - 1;
+      let arr = [...base];
+      const out = [];
+      for (let r = 0; r < rounds; r++) {
+        for (let i = 0; i < n/2; i++) {
+          const A = arr[i];
+          const B = arr[n-1-i];
+          const bye = (A.id === 'BYE' || B.id === 'BYE');
+          out.push({
+            matchday: r+1,
+            a_id: A.id === 'BYE' ? null : A.id,
+            b_id: B.id === 'BYE' ? null : B.id,
+            best_of_set: bestOf,
+            sets: [{a:'',b:''},{a:'',b:''},{a:'',b:''}],
+            status: bye ? 'bye' : 'scheduled'
+          });
+        }
+        arr = [arr[0], arr[n-1], ...arr.slice(1,n-1)];
+      }
+      return out.filter(m => !(m.a_id === null && m.b_id === null));
+    }
+
+    async function generateCalendar() {
+      if (!state.isAdmin) return;
+
+      // Svuota tutte le partite
+      await sb.from("matches").delete().neq("id", -1);
+
+      const bestOf = Number(el('tbestof').value) || 3;
+      const rr = generateRoundRobin(state.teams, bestOf);
+
+      for (const m of rr) {
+        await sb.from("matches").insert([{
+          matchday: m.matchday,
+          a_id: m.a_id,
+          b_id: m.b_id,
+          best_of_set: m.best_of_set,
+          sets: m.sets,
+          status: m.status
+        }]);
+      }
+      reloadMatches();
+      alert("Calendario generato.");
+    }
+
+    // --- RENDERING
+    function syncTopForm() {
+      el('tname').value   = state.tournament.name;
+      el('tformat').value = state.tournament.format;
+      el('tbestof').value = String(state.tournament.bestOf || state.tournament.best_of_set || 3);
+    }
+
+    function fillSelectors() {
+      const p1 = el('teamP1');
+      const p2 = el('teamP2');
+      const opts = '<option value="">—</option>' + state.players
+        .map(p => `<option value="${p.id}">${p.name}</option>`)
+        .join('');
+      p1.innerHTML = opts;
+      p2.innerHTML = opts;
+    }
+
+    function renderPlayers() {
+      const box = el('playersList');
+      if (!state.players.length) {
+        box.innerHTML = '<div class="muted">Nessun giocatore</div>';
+        return;
+      }
+      box.innerHTML = state.players
+        .map(p => `<div class='mb8'><span class='badge'>${p.name}${p.rating ? ' · '+p.rating+'/5' : ''}</span></div>`)
+        .join('');
+    }
+
+    function renderTeams() {
+      const box = el('teamsList');
+      if (!state.teams.length) {
+        box.innerHTML = '<div class="muted">Nessuna squadra</div>';
+        return;
+      }
+      box.innerHTML = state.teams
+        .map(t => `<div class='mb8'><span class='badge'>${t.name}</span></div>`)
+        .join('');
+    }
+
+    function maxMatchday() {
+      return state.matches.reduce((mx,m)=>Math.max(mx,Number(m.matchday||0)),0);
+    }
+
+    function gradientForMatchday(day) {
+      const mx = maxMatchday() || 1;
+      const ratio = mx>1 ? (day-1)/(mx-1) : 0;
+      const hue = Math.round(355-330*ratio);
+      return `background:hsl(${hue},90%,90%);`;
+    }
+
+    function matchdayBadge(day) {
+      if (!day) return '';
+      return `<span class='pill' style="${gradientForMatchday(Number(day))}">📅 Giornata ${day}</span>`;
+    }
+
+    function fillMatchdayFilter(id) {
+      const s = document.getElementById(id);
+      if (!s) return;
+      const mx = maxMatchday();
+      let opts = "<option value=''>Tutte</option>";
+      for (let d=1; d<=mx; d++) {
+        opts += `<option value='${d}'>Giornata ${d}</option>`;
+      }
+      s.innerHTML = opts;
+    }
+
+    function statusBadge(m) {
+      if (m.status === 'bye') return "<span class='pill pill-bye'>BYE</span>";
+      if (m.status === 'completed') return "<span class='pill pill-ok'>✅ Completata</span>";
+      return "<span class='pill pill-warn'>⏳ In programma</span>";
+    }
+
+    function teamNameById(id) {
+      const t = state.teams.find(t => String(t.id) === String(id));
+      return t ? t.name : (id || '');
+    }
+
+    function renderMatches() {
+      const box = el('matches');
+      if (!state.matches.length) {
+        box.innerHTML = '<div class="muted">Nessuna partita.</div>';
+        return;
+      }
+
+      // gruppa per giornata
+      const grouped = new Map();
+      state.matches.forEach(m => {
+        const k = m.matchday || 1;
+        if (!grouped.has(k)) grouped.set(k, []);
+        grouped.get(k).push(m);
+      });
+
+      const sel = document.getElementById('filterMatchday');
+      const f = sel && sel.value ? Number(sel.value) : null;
+      const keys = [...grouped.keys()]
+        .filter(k => !f || k===f)
+        .sort((a,b) => a-b);
+
+      const html = keys.map(k => {
+        const items = grouped.get(k).map(m => {
+          if (m.status === 'bye') {
+            return `
+              <div class='card mb8'>
+                <div>${matchdayBadge(m.matchday||'')}</div>
+                <b>${teamNameById(m.a_id||m.b_id)||'BYE'}</b>
+                <span class='muted'>riposa (BYE)</span>
+              </div>
+            `;
+          }
+
+          const canEdit = state.isAdmin;
+          const setsArr = m.sets || [{a:'',b:''},{a:'',b:''},{a:'',b:''}];
+          const setsHtml = setsArr.map((s,i) => `
+            <div class='grid g-2 mb8'>
+              <input ${canEdit?'':'disabled'} data-mid='${m.id}' data-idx='${i}' data-s='a' placeholder='A' value='${s.a ?? ''}' />
+              <input ${canEdit?'':'disabled'} data-mid='${m.id}' data-idx='${i}' data-s='b' placeholder='B' value='${s.b ?? ''}' />
+            </div>
+          `).join('');
+
+          return `
+            <div class='card mb8'>
+              <div>${matchdayBadge(m.matchday||'')}</div>
+              <div><b>${teamNameById(m.a_id)||'??'}</b> <span class='muted'>vs</span> <b>${teamNameById(m.b_id)||'??'}</b></div>
+              ${statusBadge(m)}
+              ${setsHtml}
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div>
+            <div class='badge'>Giornata ${k}</div>
+            <div class='mt8'>${items}</div>
+          </div>
+        `;
+      }).join('');
+
+      box.innerHTML = html;
+    }
+
+    function computeWinner(m) {
+      if (m.status === 'bye') return m.a_id || m.b_id || null;
+      let aSetsWon = 0;
+      let bSetsWon = 0;
+      const limit = m.best_of_set === 1 ? 1 : 3;
+      for (let i=0; i<limit; i++) {
+        const s = m.sets && m.sets[i];
+        if (!s) continue;
+        const sa = Number(s.a);
+        const sb = Number(s.b);
+        if (!Number.isFinite(sa) || !Number.isFinite(sb)) continue;
+        if (sa > sb) aSetsWon++;
+        else if (sb > sa) bSetsWon++;
+      }
+      if (aSetsWon===0 && bSetsWon===0) return null;
+      if (aSetsWon===bSetsWon) return 'draw';
+      return aSetsWon>bSetsWon ? m.a_id : m.b_id;
+    }
+
+    function computeStandings() {
+      // stats per squadra
+      const table = new Map();
+      state.teams.forEach(T => {
+        table.set(String(T.id), {
+          team: T,
+          played:0, won:0, lost:0,
+          setsFor:0, setsAgainst:0,
+          gamesFor:0, gamesAgainst:0,
+          points:0
+        });
+      });
+
+      state.matches.forEach(m => {
+        if (m.status === 'bye') {
+          const tid = m.a_id || m.b_id;
+          if (!tid) return;
+          const row = table.get(String(tid));
+          if (!row) return;
+          row.played++;
+          row.won++;
+          row.points += 3;
+          return;
+        }
+
+        const winner = computeWinner(m);
+        if (!winner) return;
+
+        const aRow = table.get(String(m.a_id));
+        const bRow = table.get(String(m.b_id));
+        if (!aRow || !bRow) return;
+
+        const limit = m.best_of_set === 1 ? 1 : 3;
+        for (let i=0; i<limit; i++) {
+          const s = m.sets && m.sets[i];
+          if (!s) continue;
+          const sa = Number(s.a);
+          const sb = Number(s.b);
+          if (!Number.isFinite(sa) || !Number.isFinite(sb)) continue;
+
+          aRow.gamesFor     += sa;
+          aRow.gamesAgainst += sb;
+          bRow.gamesFor     += sb;
+          bRow.gamesAgainst += sa;
+
+          if (sa > sb) {
+            aRow.setsFor++;
+            bRow.setsAgainst++;
+          } else if (sb > sa) {
+            bRow.setsFor++;
+            aRow.setsAgainst++;
+          }
+        }
+
+        aRow.played++;
+        bRow.played++;
+
+        if (String(winner) === String(m.a_id)) {
+          aRow.won++;
+          aRow.points += 3;
+          bRow.lost++;
+        } else {
+          bRow.won++;
+          bRow.points += 3;
+          aRow.lost++;
+        }
+      });
+
+      return [...table.values()].sort((x,y)=>
+        y.points - x.points ||
+        (y.setsFor-y.setsAgainst) - (x.setsFor-x.setsAgainst) ||
+        (y.gamesFor-y.gamesAgainst) - (x.gamesFor-x.gamesAgainst) ||
+        y.won - x.won
+      );
+    }
+
+    function renderStandings() {
+      const box = el('standings');
+      if (state.tournament.format !== 'Girone') {
+        box.innerHTML = '<div class="muted">Disponibile solo per il formato Girone.</div>';
+        return;
+      }
+
+      const rows = computeStandings();
+      if (!rows.length) {
+        box.innerHTML = '<div class="muted">Nessun dato.</div>';
+        return;
+      }
+
+      box.innerHTML = `
+        <div style='overflow-x:auto'>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Squadra</th>
+                <th>G</th>
+                <th>V</th>
+                <th>P</th>
+                <th>Set +/-</th>
+                <th>Game +/-</th>
+                <th>Punti</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map((r,i)=>`
+                <tr>
+                  <td>${i+1}</td>
+                  <td>${r.team.name}</td>
+                  <td>${r.played}</td>
+                  <td>${r.won}</td>
+                  <td>${r.lost}</td>
+                  <td>${r.setsFor}:${r.setsAgainst}</td>
+                  <td>${r.gamesFor}:${r.gamesAgainst}</td>
+                  <td><b>${r.points}</b></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function applyTabs() {
+      const tabs = [...document.querySelectorAll('.tab')];
+      const panes = {
+        partite: document.getElementById('tab-partite'),
+        classifica: document.getElementById('tab-classifica')
+      };
+      let active = localStorage.getItem('padel_active_tab') || 'partite';
+
+      function setActive(n) {
+        active = n;
+        localStorage.setItem('padel_active_tab', n);
+        tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === n));
+        panes.partite.style.display   = n === 'partite'   ? 'block' : 'none';
+        panes.classifica.style.display= n === 'classifica'? 'block' : 'none';
+      }
+
+      tabs.forEach(t => t.onclick = () => setActive(t.dataset.tab));
+      setActive(active);
+    }
+
+    // --- EVENT LISTENERS
+    document.getElementById('loginBtn').onclick  = tryAdminLogin;
+    document.getElementById('logoutBtn').onclick = adminLogout;
+
+    document.getElementById('tname').onchange   = () => { if(state.isAdmin) saveTournamentMeta(); };
+    document.getElementById('tformat').onchange = () => { if(state.isAdmin) { saveTournamentMeta(); renderStandings(); } };
+    document.getElementById('tbestof').onchange = () => { if(state.isAdmin) saveTournamentMeta(); };
+
+    document.getElementById('addPlayer').onclick = addPlayer;
+    document.getElementById('addTeam').onclick   = addTeam;
+
+    document.getElementById('genBtn').onclick    = generateCalendar;
+
+    document.getElementById('filterMatchday').onchange = () => renderMatches();
+
+    // PWA install
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('installBtn').style.display = 'inline-block';
+    });
+    document.getElementById('installBtn').addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      document.getElementById('installBtn').style.display = 'none';
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(()=>{});
+    }
+
+    // --- INIT
+    async function init() {
+      setRoleBanner();
+      applyRoleRestrictions();
+      applyTabs();
+      await loadAllData();
+      startRealtime();
+      fillMatchdayFilter('filterMatchday');
+    }
+
+    init();
+  </script>
+</body>
+</html>
