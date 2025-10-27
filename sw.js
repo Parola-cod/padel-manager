@@ -1,13 +1,13 @@
-const CACHE = 'padel-lite-v4';
+const CACHE = 'padel-lite-v5'; // bump versione cache
 const STATIC_ASSETS = [
-  '/offline.html',
-  '/manifest.webmanifest',
-  '/pwa-192.png',
-  '/pwa-512.png',
-  '/pwa-maskable-192.png',
-  '/pwa-maskable-512.png',
-  '/apple-touch-icon.png',
-  '/logo-padel.png'
+  './offline.html',
+  './manifest.webmanifest',
+  './pwa-192.png',
+  './pwa-512.png',
+  './pwa-maskable-192.png',
+  './pwa-maskable-512.png',
+  './apple-touch-icon.png',
+  './logo-padel.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -25,23 +25,22 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
+// rete-prima per le pagine HTML, cache-prima per asset statici
 self.addEventListener('fetch', (event) => {
   const req = event.request;
 
-  // Navigazioni (HTML): rete prima, se offline offline.html
   if (req.mode === 'navigate' || req.destination === 'document') {
     event.respondWith(
-      fetch(req).catch(() => caches.match('/offline.html'))
+      fetch(req).catch(() => caches.match('./offline.html'))
     );
     return;
   }
 
-  // Statici: cache-first
   event.respondWith(
     caches.match(req).then(hit =>
       hit || fetch(req).then(res => {
         const copy = res.clone();
-        if (STATIC_ASSETS.some(p => req.url.includes(p))) {
+        if (STATIC_ASSETS.some(p => req.url.includes(p.replace('./','')))) {
           caches.open(CACHE).then(c => c.put(req, copy));
         }
         return res;
