@@ -447,16 +447,7 @@ function matchdayBadge(day) {
   return `<span class='pill' style="${gradientForMatchday(Number(day))}">📅 Giornata ${day}</span>`;
 }
 
-function fillMatchdayFilter(id) {
-  const s = document.getElementById(id);
-  if (!s) return;
-  const mx = maxMatchday();
-  let opts = "<option value=''>Tutte</option>";
-  for (let d=1; d<=mx; d++) {
-    opts += `<option value='${d}'>Giornata ${d}</option>`;
-  }
-  s.innerHTML = opts;
-}
+
 
 function statusBadge(m) {
   if (m.status === 'bye') return "<span class='pill pill-bye'>BYE</span>";
