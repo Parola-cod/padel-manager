@@ -1,4 +1,4 @@
-const CACHE = 'padel-lite-v5'; // bump versione cache
+const CACHE = 'padel-lite-v5'; // bump versione cache per forzare update
 const STATIC_ASSETS = [
   './offline.html',
   './manifest.webmanifest',
@@ -25,7 +25,7 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
-// rete-prima per le pagine HTML, cache-prima per asset statici
+// rete-prima per le pagine html, cache-prima per gli asset (icone ecc.)
 self.addEventListener('fetch', (event) => {
   const req = event.request;
 

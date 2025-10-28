@@ -62,8 +62,10 @@
   </header>
 
   <div class="wrap">
+    <!-- Banner ruolo -->
     <div class="card" id="roleBanner" style="border-style:dashed;border-color:#fda4af;background:#fff1f2;"></div>
 
+    <!-- SOLO ADMIN -->
     <div id="setupCard" class="card row row-2 mt16">
       <div>
         <label>Nome torneo</label>
@@ -90,6 +92,7 @@
     </div>
 
     <div id="adminCards" class="row row-2 mt16">
+      <!-- Giocatori -->
       <div id="playersCard" class="card">
         <div class="row">
           <div class="row g-2">
@@ -107,6 +110,7 @@
         <div class="mt8" id="playersList"></div>
       </div>
 
+      <!-- Squadre -->
       <div id="teamsCard" class="card">
         <div class="row">
           <div class="row g-2">
@@ -129,6 +133,7 @@
       </div>
     </div>
 
+    <!-- TABS -->
     <div class="mt16">
       <div class="tabs">
         <div class="tab" data-tab="partite">Partite</div>
@@ -136,6 +141,7 @@
       </div>
 
       <div class="tabpanes">
+        <!-- Partite -->
         <div id="tab-partite">
           <div class="card" style="border:none; padding:0;">
             <div class="row g-2 mb8">
@@ -148,6 +154,7 @@
           </div>
         </div>
 
+        <!-- Classifica -->
         <div id="tab-classifica" style="display:none">
           <div class="card" style="border:none; padding:0;">
             <div class="muted">Valida per formato Girone</div>
@@ -158,7 +165,7 @@
     </div>
   </div>
 
-  <!-- QUI ora carichiamo il JS come file esterno -->
+  <!-- App logic -->
   <script type="module" src="./app.js"></script>
 </body>
 </html>
