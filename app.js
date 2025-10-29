@@ -1,13 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// 🔴 METTI LE TUE CHIAVI QUI
+// ✅ METTI QUI LE TUE CREDENZIALI
 const supabaseUrl = "https://qrqpfektlgecupuhvotj.supabase.co";   // es: "https://abcd1234.supabase.co"
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFycXBmZWt0bGdlY3VwdWh2b3RqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzNTMwOTIsImV4cCI6MjA3NjkyOTA5Mn0.Yv168Sr134HY7qi8PWuRByAQNHGkrvnLHmEGfF7dsjQ";
-// 🔴 FINE
+// ✅ FINE CREDENZIALI
 
 const sb = createClient(supabaseUrl, supabaseKey);
 
-// Stato dell'app
+// stato app
 const state = {
   isAdmin: false,
   tournament: { name: "Torneo di Padel", format: "Girone", bestOf: 3 },
@@ -23,7 +23,9 @@ function safeNum(x, fallback = null) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-/* ========== LOGIN / LOGOUT ADMIN ========== */
+// =========================
+// LOGIN / LOGOUT ADMIN
+// =========================
 async function tryAdminLogin() {
   const pass = prompt("Password admin?");
   if (!pass) return;
@@ -76,11 +78,11 @@ function setRoleBanner() {
   if (!b || !loginBtn || !logoutBtn) return;
 
   if (state.isAdmin) {
-    b.textContent = "Modalità Amministratore: puoi modificare torneo, giocatori, squadre e calendario.";
+    b.textContent = "Modalità Amministratore: puoi modificare torneo, roster e risultati ufficiali.";
     loginBtn.style.display  = "none";
     logoutBtn.style.display = "inline-block";
   } else {
-    b.textContent = "Modalità Utente: sola visualizzazione dei dati.";
+    b.textContent = "Modalità Utente: sola visualizzazione.";
     loginBtn.style.display  = "inline-block";
     logoutBtn.style.display = "none";
   }
@@ -100,11 +102,13 @@ function applyRoleRestrictions() {
   }
 }
 
-/* ========== CARICAMENTO DATI ========== */
+// =========================
+// CARICAMENTO DATI
+// =========================
 async function loadAllData() {
   console.log("loadAllData() start");
 
-  // Torneo
+  // tournament
   try {
     const { data: tData, error: terr } = await sb
       .from("tournament")
@@ -124,7 +128,7 @@ async function loadAllData() {
     console.error("Errore torneo:", e);
   }
 
-  // Players
+  // players
   try {
     const { data: players, error: perr } = await sb
       .from("players")
@@ -136,7 +140,7 @@ async function loadAllData() {
     console.error("Errore players:", e);
   }
 
-  // Teams
+  // teams
   try {
     const { data: teams, error: terr2 } = await sb
       .from("teams")
@@ -148,12 +152,13 @@ async function loadAllData() {
     console.error("Errore teams:", e);
   }
 
-  // Matches
+  // matches
   try {
     const { data: matches, error: merr } = await sb
       .from("matches")
       .select("*")
-      .order("matchday", { ascending: true });
+      .order("matchday", { ascending: true })
+      .order("id", { ascending: true });
     if (merr) console.warn("matches error:", merr);
     if (matches) state.matches = matches;
   } catch(e) {
@@ -166,7 +171,7 @@ async function loadAllData() {
   console.log("loadAllData() done");
 }
 
-/* ========== REALTIME ========== */
+// realtime aggiornamento partite
 function startRealtime() {
   console.log("startRealtime()");
   try {
@@ -192,7 +197,8 @@ async function reloadMatches() {
     const { data: matches, error } = await sb
       .from("matches")
       .select("*")
-      .order("matchday", { ascending: true });
+      .order("matchday", { ascending: true })
+      .order("id", { ascending: true });
     if (error) {
       console.warn("reloadMatches supabase error:", error);
       return;
@@ -208,7 +214,9 @@ async function reloadMatches() {
   }
 }
 
-/* ========== AZIONI ADMIN (scrittura) ========== */
+// =========================
+// AZIONI ADMIN: TORNEO
+// =========================
 async function saveTournamentMeta() {
   if (!state.isAdmin) return;
   const name   = el('tname').value || "Torneo di Padel";
@@ -233,6 +241,9 @@ async function saveTournamentMeta() {
   renderStandings();
 }
 
+// =========================
+// AZIONI ADMIN: GIOCATORI
+// =========================
 async function addPlayer() {
   if (!state.isAdmin) return;
   const name   = el('pname').value.trim();
@@ -257,20 +268,38 @@ async function addPlayer() {
   el('pname').value   = '';
   el('prating').value = '';
 
+  await refreshPlayers();
+}
+
+async function refreshPlayers() {
   try {
     const { data: players } = await sb
       .from("players")
       .select("*")
       .order("name", { ascending:true });
-    if (players) state.players = players;
+    state.players = players || [];
   } catch(e) {
-    console.error("reload players crash:", e);
+    console.error("refreshPlayers crash:", e);
   }
-
   renderPlayers();
   fillSelectors();
 }
 
+async function deletePlayer(pid) {
+  if (!state.isAdmin) return;
+  const ok = confirm("Eliminare questo giocatore?");
+  if (!ok) return;
+  try {
+    await sb.from("players").delete().eq("id", pid);
+  } catch(e) {
+    console.error("deletePlayer crash:", e);
+  }
+  await refreshPlayers();
+}
+
+// =========================
+// AZIONI ADMIN: SQUADRE
+// =========================
 async function addTeam() {
   if (!state.isAdmin) return;
   const p1 = el('teamP1').value;
@@ -301,21 +330,38 @@ async function addTeam() {
   el('teamP1').value   = '';
   el('teamP2').value   = '';
 
+  await refreshTeams();
+}
+
+async function refreshTeams() {
   try {
     const { data: teams } = await sb
       .from("teams")
       .select("*")
       .order("name", { ascending:true });
-    if (teams) state.teams = teams;
+    state.teams = teams || [];
   } catch(e) {
-    console.error("reload teams crash:", e);
+    console.error("refreshTeams crash:", e);
   }
-
   renderTeams();
   fillSelectors();
 }
 
-// genera il calendario "tutti contro tutti"
+async function deleteTeam(tid) {
+  if (!state.isAdmin) return;
+  const ok = confirm("Eliminare questa squadra?");
+  if (!ok) return;
+  try {
+    await sb.from("teams").delete().eq("id", tid);
+  } catch(e) {
+    console.error("deleteTeam crash:", e);
+  }
+  await refreshTeams();
+}
+
+// =========================
+// CALENDARIO / PARTITE
+// =========================
 function generateRoundRobin(teams, bestOf) {
   const base = [...teams];
   if (base.length < 2) return [];
@@ -337,7 +383,9 @@ function generateRoundRobin(teams, bestOf) {
         b_id: B.id === 'BYE' ? null : B.id,
         best_of_set: bestOf,
         sets: [{a:'',b:''},{a:'',b:''},{a:'',b:''}],
-        status: bye ? 'bye' : 'scheduled'
+        status: bye ? 'bye' : 'scheduled',
+        confirmed: false,
+        match_date: null
       });
     }
     // rotazione round robin
@@ -350,9 +398,12 @@ function generateRoundRobin(teams, bestOf) {
 async function generateCalendar() {
   if (!state.isAdmin) return;
 
-  // svuota le partite
+  // svuota match esistenti
   try {
-    const { error: delErr } = await sb.from("matches").delete().neq("id", -1);
+    const { error: delErr } = await sb
+      .from("matches")
+      .delete()
+      .neq("id", -1);
     if (delErr) {
       alert("Errore reset calendario");
       console.error(delErr);
@@ -374,7 +425,9 @@ async function generateCalendar() {
         b_id: m.b_id,
         best_of_set: m.best_of_set,
         sets: m.sets,
-        status: m.status
+        status: m.status,
+        confirmed: m.confirmed,
+        match_date: m.match_date
       }]);
       if (insErr) {
         console.error("Errore inserimento match:", insErr);
@@ -388,7 +441,100 @@ async function generateCalendar() {
   alert("Calendario generato.");
 }
 
-/* ========== RENDER UI ========== */
+// =========================
+// GESTIONE RISULTATI PARTITA
+// =========================
+
+// legge i campi input di una partita (set + data) dal DOM
+function collectEditedMatch(mid) {
+  // set
+  const setInputs = [...document.querySelectorAll(`[data-mid='${mid}'][data-idx][data-s]`)];
+  const setMap = {};
+  setInputs.forEach(inp => {
+    const idx = inp.getAttribute("data-idx");
+    const side = inp.getAttribute("data-s"); // 'a' o 'b'
+    if (!setMap[idx]) setMap[idx] = { a:"", b:"" };
+    setMap[idx][side] = inp.value;
+  });
+  // ordina in array
+  const setsArr = Object.keys(setMap)
+    .sort((a,b)=>Number(a)-Number(b))
+    .map(k => setMap[k]);
+
+  // data partita
+  const dateInput = document.querySelector(`.match-date-input[data-mid='${mid}']`);
+  const matchDate = dateInput ? (dateInput.value || null) : null;
+
+  return {
+    sets: setsArr,
+    match_date: matchDate
+  };
+}
+
+// salva punteggi/data senza confermare
+async function saveMatch(mid) {
+  if (!state.isAdmin) return;
+  const payload = collectEditedMatch(mid);
+
+  try {
+    const { error } = await sb
+      .from("matches")
+      .update({
+        sets: payload.sets,
+        match_date: payload.match_date
+      })
+      .eq("id", mid);
+
+    if (error) {
+      alert("Errore nel salvataggio");
+      console.error(error);
+      return;
+    }
+  } catch(e) {
+    console.error("saveMatch crash:", e);
+    return;
+  }
+
+  await reloadMatches();
+}
+
+// salva e marca come confermata/completata
+async function confirmMatch(mid) {
+  if (!state.isAdmin) return;
+
+  const ok = confirm("Confermi definitivamente il risultato?");
+  if (!ok) return;
+
+  const payload = collectEditedMatch(mid);
+
+  try {
+    const { error } = await sb
+      .from("matches")
+      .update({
+        sets: payload.sets,
+        match_date: payload.match_date,
+        status: "completed",
+        confirmed: true
+      })
+      .eq("id", mid);
+
+    if (error) {
+      alert("Errore nella convalida");
+      console.error(error);
+      return;
+    }
+  } catch(e) {
+    console.error("confirmMatch crash:", e);
+    return;
+  }
+
+  await reloadMatches();
+  alert("Risultato confermato ✅");
+}
+
+// =========================
+// RENDER HELPERS
+// =========================
 function syncTopForm() {
   const t = state.tournament || {};
   if (el('tname'))   el('tname').value   = t.name   ?? "Torneo di Padel";
@@ -410,54 +556,185 @@ function fillSelectors() {
 function renderPlayers() {
   const box = el('playersList');
   if (!box) return;
+
   if (!state.players.length) {
     box.innerHTML = '<div class="muted">Nessun giocatore</div>';
     return;
   }
-  box.innerHTML = state.players
-    .map(p => `<div class='mb8'><span class='badge'>${p.name}${p.rating ? ' · '+p.rating+'/5' : ''}</span></div>`)
-    .join('');
+
+  box.innerHTML = state.players.map(p => `
+    <div class="mb8 flexrow">
+      <span class='badge'>${p.name}${p.rating ? ' · '+p.rating+'/5' : ''}</span>
+      ${state.isAdmin ? `<button class="danger delPlayerBtn" data-pid="${p.id}" style="padding:4px 8px;font-size:12px">🗑</button>` : ``}
+    </div>
+  `).join('');
+
+  wireDeleteButtons();
 }
 
 function renderTeams() {
   const box = el('teamsList');
   if (!box) return;
+
   if (!state.teams.length) {
     box.innerHTML = '<div class="muted">Nessuna squadra</div>';
     return;
   }
-  box.innerHTML = state.teams
-    .map(t => `<div class='mb8'><span class='badge'>${t.name}</span></div>`)
-    .join('');
+
+  box.innerHTML = state.teams.map(t => `
+    <div class="mb8 flexrow">
+      <span class='badge'>${t.name}</span>
+      ${state.isAdmin ? `<button class="danger delTeamBtn" data-tid="${t.id}" style="padding:4px 8px;font-size:12px">🗑</button>` : ``}
+    </div>
+  `).join('');
+
+  wireDeleteButtons();
 }
 
+// colore gradiente per badge giornata
 function maxMatchday() {
   return state.matches.reduce((mx,m)=>Math.max(mx,Number(m.matchday||0)),0);
 }
-
 function gradientForMatchday(day) {
   const mx = maxMatchday() || 1;
   const ratio = mx>1 ? (day-1)/(mx-1) : 0;
   const hue = Math.round(355-330*ratio);
   return `background:hsl(${hue},90%,90%);`;
 }
-
 function matchdayBadge(day) {
   if (!day) return '';
   return `<span class='pill' style="${gradientForMatchday(Number(day))}">📅 Giornata ${day}</span>`;
 }
 
+// Mostra la data della partita per l'utente
+function dateBadge(d) {
+  if (!d) return "";
+  // d è in formato "YYYY-MM-DD"
+  const parts = d.split("-");
+  if (parts.length === 3) {
+    return `<span class="pill pill-warn">📆 ${parts[2]}/${parts[1]}/${parts[0]}</span>`;
+  }
+  return `<span class="pill pill-warn">📆 ${d}</span>`;
+}
 
+function fillMatchdayFilter(id) {
+  const s = document.getElementById(id);
+  if (!s) return;
+  const mx = maxMatchday();
+  let opts = "<option value=''>Tutte</option>";
+  for (let d=1; d<=mx; d++) {
+    opts += `<option value='${d}'>Giornata ${d}</option>`;
+  }
+  s.innerHTML = opts;
+}
 
 function statusBadge(m) {
   if (m.status === 'bye') return "<span class='pill pill-bye'>BYE</span>";
-  if (m.status === 'completed') return "<span class='pill pill-ok'>✅ Completata</span>";
+  if (m.status === 'completed') {
+    if (m.confirmed) {
+      return "<span class='pill pill-ok'>✅ Convalidata</span>";
+    }
+    return "<span class='pill pill-ok'>✅ Completata</span>";
+  }
   return "<span class='pill pill-warn'>⏳ In programma</span>";
 }
 
 function teamNameById(id) {
   const t = state.teams.find(t => String(t.id) === String(id));
   return t ? t.name : (id || '');
+}
+
+// blocchi di set punteggio
+function renderSetInputs(m, canEdit) {
+  const setsArr = m.sets && Array.isArray(m.sets) ? m.sets : [{a:'',b:''},{a:'',b:''},{a:'',b:''}];
+  return setsArr.map((s,i) => `
+    <div class='grid g-2 mb4'>
+      <input
+        ${canEdit ? "" : "disabled class='readonlyField'"}
+        data-mid='${m.id}'
+        data-idx='${i}'
+        data-s='a'
+        placeholder='A'
+        value='${s.a ?? ''}' />
+      <input
+        ${canEdit ? "" : "disabled class='readonlyField'"}
+        data-mid='${m.id}'
+        data-idx='${i}'
+        data-s='b'
+        placeholder='B'
+        value='${s.b ?? ''}' />
+    </div>
+  `).join('');
+}
+
+function renderMatchCard(m) {
+  if (m.status === 'bye') {
+    return `
+      <div class='card mb8'>
+        <div>${matchdayBadge(m.matchday||'')}</div>
+        <div class="mb4"><b>${teamNameById(m.a_id||m.b_id)||'BYE'}</b></div>
+        <div class="muted">riposa (BYE)</div>
+      </div>
+    `;
+  }
+
+  const canEdit = state.isAdmin && !m.confirmed;
+  const lockMsg = m.confirmed
+    ? `<div class="dim">Risultato confermato ✔ non modificabile</div>`
+    : ``;
+
+  // campo data solo admin
+  const dateAdminBlock = state.isAdmin ? `
+    <div class='match-date-block mb8'>
+      <label>Data partita</label>
+      <input
+        type="date"
+        class="match-date-input ${m.confirmed ? 'readonlyField':''}"
+        data-mid="${m.id}"
+        value="${m.match_date ? m.match_date : ''}"
+        ${m.confirmed ? 'disabled' : ''} />
+    </div>
+  ` : ``;
+
+  // pulsanti admin
+  const adminButtons = state.isAdmin ? `
+    <div class="match-controls">
+      <button
+        class="saveMatchBtn"
+        data-mid="${m.id}"
+        ${m.confirmed ? 'disabled class="ghost"' : ''}>
+        Salva punteggi / data
+      </button>
+      <button
+        class="confirmMatchBtn ghost"
+        data-mid="${m.id}"
+        ${m.confirmed ? 'disabled' : ''}>
+        Convalida risultato
+      </button>
+    </div>
+  ` : ``;
+
+  return `
+    <div class='card mb8'>
+      <div class="mb4">${matchdayBadge(m.matchday||'')}</div>
+      <div class="mb4">
+        <b>${teamNameById(m.a_id)||'??'}</b>
+        <span class='muted'>vs</span>
+        <b>${teamNameById(m.b_id)||'??'}</b>
+      </div>
+      <div class="mb4">
+        ${statusBadge(m)} ${dateBadge(m.match_date||null)}
+      </div>
+
+      ${lockMsg}
+
+      ${renderSetInputs(m, canEdit)}
+
+      ${dateAdminBlock}
+
+      ${adminButtons}
+    </div>
+  `;
 }
 
 function renderMatches() {
@@ -469,6 +746,7 @@ function renderMatches() {
     return;
   }
 
+  // raggruppa per giornata
   const grouped = new Map();
   state.matches.forEach(m => {
     const k = m.matchday || 1;
@@ -476,6 +754,7 @@ function renderMatches() {
     grouped.get(k).push(m);
   });
 
+  // filtra se selezionata giornata
   const sel = document.getElementById('filterMatchday');
   const f = sel && sel.value ? Number(sel.value) : null;
   const keys = [...grouped.keys()]
@@ -483,47 +762,22 @@ function renderMatches() {
     .sort((a,b) => a-b);
 
   const html = keys.map(k => {
-    const items = grouped.get(k).map(m => {
-      if (m.status === 'bye') {
-        return `
-          <div class='card mb8'>
-            <div>${matchdayBadge(m.matchday||'')}</div>
-            <b>${teamNameById(m.a_id||m.b_id)||'BYE'}</b>
-            <span class='muted'>riposa (BYE)</span>
-          </div>
-        `;
-      }
-
-      const canEdit = state.isAdmin;
-      const setsArr = m.sets || [{a:'',b:''},{a:'',b:''},{a:'',b:''}];
-      const setsHtml = setsArr.map((s,i) => `
-        <div class='grid g-2 mb8'>
-          <input ${canEdit?'':'disabled'} data-mid='${m.id}' data-idx='${i}' data-s='a' placeholder='A' value='${s.a ?? ''}' />
-          <input ${canEdit?'':'disabled'} data-mid='${m.id}' data-idx='${i}' data-s='b' placeholder='B' value='${s.b ?? ''}' />
-        </div>
-      `).join('');
-
-      return `
-        <div class='card mb8'>
-          <div>${matchdayBadge(m.matchday||'')}</div>
-          <div><b>${teamNameById(m.a_id)||'??'}</b> <span class='muted'>vs</span> <b>${teamNameById(m.b_id)||'??'}</b></div>
-          ${statusBadge(m)}
-          ${setsHtml}
-        </div>
-      `;
-    }).join('');
-
+    const items = grouped.get(k).map(renderMatchCard).join('');
     return `
-      <div>
-        <div class='badge'>Giornata ${k}</div>
-        <div class='mt8'>${items}</div>
+      <div class="mb16">
+        <div class='badge mb8'>Giornata ${k}</div>
+        <div>${items}</div>
       </div>
     `;
   }).join('');
 
   box.innerHTML = html;
+
+  // dopo aver disegnato le partite, riattacchiamo i bottoni admin
+  wireMatchButtons();
 }
 
+// classifica
 function computeWinner(m) {
   if (m.status === 'bye') return m.a_id || m.b_id || null;
   let aSetsWon = 0;
@@ -556,6 +810,7 @@ function computeStandings() {
   });
 
   state.matches.forEach(m => {
+    // bye counts as automatic win for team present
     if (m.status === 'bye') {
       const tid = m.a_id || m.b_id;
       if (!tid) return;
@@ -566,6 +821,8 @@ function computeStandings() {
       row.points += 3;
       return;
     }
+
+    if (m.status !== 'completed') return; // solo match confermati/completati
 
     const winner = computeWinner(m);
     if (!winner) return;
@@ -667,6 +924,50 @@ function renderStandings() {
   `;
 }
 
+// =========================
+// WIRING DINAMICO
+// =========================
+function wireDeleteButtons() {
+  // elimina giocatore
+  document.querySelectorAll(".delPlayerBtn").forEach(btn => {
+    btn.onclick = () => {
+      const pid = btn.getAttribute("data-pid");
+      deletePlayer(pid);
+    };
+  });
+
+  // elimina squadra
+  document.querySelectorAll(".delTeamBtn").forEach(btn => {
+    btn.onclick = () => {
+      const tid = btn.getAttribute("data-tid");
+      deleteTeam(tid);
+    };
+  });
+}
+
+function wireMatchButtons() {
+  // salva punteggi/data
+  document.querySelectorAll(".saveMatchBtn").forEach(btn => {
+    btn.onclick = () => {
+      const mid = btn.getAttribute("data-mid");
+      saveMatch(mid);
+    };
+  });
+
+  // convalida definitivo
+  document.querySelectorAll(".confirmMatchBtn").forEach(btn => {
+    btn.onclick = () => {
+      const mid = btn.getAttribute("data-mid");
+      confirmMatch(mid);
+    };
+  });
+
+  // filtro giornate già lo gestiamo fuori
+}
+
+// =========================
+// RENDER TUTTO
+// =========================
 function renderAll() {
   renderPlayers();
   renderTeams();
@@ -675,18 +976,9 @@ function renderAll() {
   fillSelectors();
 }
 
-function fillMatchdayFilter(id) {
-  const s = document.getElementById(id);
-  if (!s) return;
-  const mx = maxMatchday();
-  let opts = "<option value=''>Tutte</option>";
-  for (let d=1; d<=mx; d++) {
-    opts += `<option value='${d}'>Giornata ${d}</option>`;
-  }
-  s.innerHTML = opts;
-}
-
-/* ========== TABS ========== */
+// =========================
+// TABS
+// =========================
 function applyTabs() {
   const tabs = [...document.querySelectorAll('.tab')];
   const panes = {
@@ -707,30 +999,9 @@ function applyTabs() {
   setActive(active);
 }
 
-/* ========== EVENT LISTENERS UI ========== */
-function attachListeners() {
-  const loginBtn        = el('loginBtn');
-  const logoutBtn       = el('logoutBtn');
-  const tname           = el('tname');
-  const tformat         = el('tformat');
-  const tbestof         = el('tbestof');
-  const addPlayerBtn    = el('addPlayer');
-  const addTeamBtn      = el('addTeam');
-  const genBtn          = el('genBtn');
-  const filterMatchday  = el('filterMatchday');
-
-  if (loginBtn)       loginBtn.onclick       = tryAdminLogin;
-  if (logoutBtn)      logoutBtn.onclick      = adminLogout;
-  if (tname)          tname.onchange         = () => { if(state.isAdmin) saveTournamentMeta(); };
-  if (tformat)        tformat.onchange       = () => { if(state.isAdmin) { saveTournamentMeta(); renderStandings(); } };
-  if (tbestof)        tbestof.onchange       = () => { if(state.isAdmin) saveTournamentMeta(); };
-  if (addPlayerBtn)   addPlayerBtn.onclick   = addPlayer;
-  if (addTeamBtn)     addTeamBtn.onclick     = addTeam;
-  if (genBtn)         genBtn.onclick         = generateCalendar;
-  if (filterMatchday) filterMatchday.onchange= () => renderMatches();
-}
-
-/* ========== PWA / SERVICE WORKER ========== */
+// =========================
+// PWA / SERVICE WORKER
+// =========================
 function setupPWA() {
   const installBtn = el('installBtn');
   let deferredPrompt = null;
@@ -758,7 +1029,34 @@ function setupPWA() {
   }
 }
 
-/* ========== BOOT APP ========== */
+// =========================
+// EVENT LISTENERS STATICI
+// =========================
+function attachListeners() {
+  const loginBtn        = el('loginBtn');
+  const logoutBtn       = el('logoutBtn');
+  const tname           = el('tname');
+  const tformat         = el('tformat');
+  const tbestof         = el('tbestof');
+  const addPlayerBtn    = el('addPlayer');
+  const addTeamBtn      = el('addTeam');
+  const genBtn          = el('genBtn');
+  const filterMatchday  = el('filterMatchday');
+
+  if (loginBtn)       loginBtn.onclick       = tryAdminLogin;
+  if (logoutBtn)      logoutBtn.onclick      = adminLogout;
+  if (tname)          tname.onchange         = () => { if(state.isAdmin) saveTournamentMeta(); };
+  if (tformat)        tformat.onchange       = () => { if(state.isAdmin) { saveTournamentMeta(); renderStandings(); } };
+  if (tbestof)        tbestof.onchange       = () => { if(state.isAdmin) saveTournamentMeta(); };
+  if (addPlayerBtn)   addPlayerBtn.onclick   = addPlayer;
+  if (addTeamBtn)     addTeamBtn.onclick     = addTeam;
+  if (genBtn)         genBtn.onclick         = generateCalendar;
+  if (filterMatchday) filterMatchday.onchange= () => renderMatches();
+}
+
+// =========================
+// BOOT
+// =========================
 async function init() {
   console.log("init()");
   setRoleBanner();

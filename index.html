@@ -6,6 +6,7 @@
   <title>Padel Manager BRT</title>
 
   <meta name="theme-color" content="#d4111e" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
@@ -23,28 +24,45 @@
     .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:12px; }
     .row { display:grid; gap:12px; }
     @media (min-width:800px) { .row-2 { grid-template-columns:1fr 1fr; } }
+
     label { font-size:12px; color:#334155; display:block; margin-bottom:4px; }
-    input,select,textarea { width:100%; padding:10px; border-radius:10px; border:1px solid #d1d5db; }
-    button { background:var(--c); color:#fff; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; }
+    input,select,textarea { width:100%; padding:10px; border-radius:10px; border:1px solid #d1d5db; font-size:14px; }
+    button { background:var(--c); color:#fff; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; font-size:14px; }
     button.ghost { background:transparent; color:#334155; border:1px solid #cbd5e1; cursor:pointer; }
-    table { width:100%; border-collapse:collapse; }
+    button.danger { background:#fff; color:#b91c1c; border:1px solid #ef4444; }
+
+    table { width:100%; border-collapse:collapse; font-size:14px; }
     th,td { padding:8px; text-align:left; }
     thead { background:#f1f5f9; }
-    .badge { display:inline-block; padding:2px 8px; border-radius:999px; background:#f1f5f9; font-size:12px; }
-    .grid { display:grid; gap:8px; }
-    .g-2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .muted { color:#64748b; font-size:12px; }
-    .mb8 { margin-bottom:8px; }
-    .mt8 { margin-top:8px; }
-    .mt16 { margin-top:16px; }
-    .tabs { display:flex; border-bottom:1px solid #e2e8f0; gap:8px; }
-    .tab { background:#fff; color:#334155; border:1px solid #e2e8f0; padding:8px 12px; border-radius:10px 10px 0 0; cursor:pointer; }
-    .tab.active { background:#fde2e2; color:#7f1d1d; border-bottom-color:transparent; font-weight:600; }
-    .tabpanes { background:#fff; border:1px solid #e2e8f0; border-top:none; border-radius:0 12px 12px 12px; padding:12px; }
-    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#ffe4e6; font-size:12px; }
+
+    .badge { display:inline-block; padding:2px 8px; border-radius:999px; background:#f1f5f9; font-size:12px; line-height:1.2; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#ffe4e6; font-size:12px; line-height:1.2; white-space:nowrap; }
     .pill-ok { background:#fde2e2; }
     .pill-warn { background:#ffe6cc; }
     .pill-bye { background:#e2e8f0; }
+
+    .muted { color:#64748b; font-size:12px; }
+    .dim { color:#94a3b8; font-size:12px; }
+    .mb4 { margin-bottom:4px; }
+    .mb8 { margin-bottom:8px; }
+    .mt8 { margin-top:8px; }
+    .mt12 { margin-top:12px; }
+    .mt16 { margin-top:16px; }
+    .flexrow { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:space-between; }
+
+    .tabs { display:flex; border-bottom:1px solid #e2e8f0; gap:8px; margin-top:16px; flex-wrap:wrap; }
+    .tab { background:#fff; color:#334155; border:1px solid #e2e8f0; padding:8px 12px; border-radius:10px 10px 0 0; cursor:pointer; font-size:14px; }
+    .tab.active { background:#fde2e2; color:#7f1d1d; border-bottom-color:transparent; font-weight:600; }
+    .tabpanes { background:#fff; border:1px solid #e2e8f0; border-top:none; border-radius:0 12px 12px 12px; padding:12px; }
+
+    .grid { display:grid; gap:8px; }
+    .g-2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .g-3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+
+    .match-controls { display:grid; gap:8px; grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .match-date-block label { font-size:11px; color:#64748b; display:block; margin-bottom:4px; }
+
+    .readonlyField { background:#f8fafc; color:#64748b; }
   </style>
 </head>
 <body>
@@ -52,7 +70,7 @@
     <img src="./logo-padel.png" alt="Logo" width="36" height="36" style="border-radius:8px" />
     <div>
       <h1>Padel Manager BRT</h1>
-      <div class="muted">Supabase realtime • Admin scrive / Utenti leggono • PWA</div>
+      <div class="muted">Torneo live • PWA installabile • Admin protetto</div>
     </div>
     <div style="margin-left:auto" class="grid g-2" id="topActions">
       <button id="installBtn" style="display:none">Installa l'app</button>
@@ -65,7 +83,7 @@
     <!-- Banner ruolo -->
     <div class="card" id="roleBanner" style="border-style:dashed;border-color:#fda4af;background:#fff1f2;"></div>
 
-    <!-- SOLO ADMIN -->
+    <!-- SOLO ADMIN: impostazioni torneo -->
     <div id="setupCard" class="card row row-2 mt16">
       <div>
         <label>Nome torneo</label>
@@ -91,6 +109,7 @@
       </div>
     </div>
 
+    <!-- SOLO ADMIN: gestione roster -->
     <div id="adminCards" class="row row-2 mt16">
       <!-- Giocatori -->
       <div id="playersCard" class="card">
@@ -107,6 +126,7 @@
           </div>
           <button id="addPlayer">Aggiungi giocatore</button>
         </div>
+
         <div class="mt8" id="playersList"></div>
       </div>
 
@@ -129,43 +149,42 @@
           </div>
           <button id="addTeam">Crea squadra</button>
         </div>
+
         <div class="mt8" id="teamsList"></div>
       </div>
     </div>
 
-    <!-- TABS -->
-    <div class="mt16">
-      <div class="tabs">
-        <div class="tab" data-tab="partite">Partite</div>
-        <div class="tab" data-tab="classifica">Classifica</div>
+    <!-- Tabs Partite / Classifica -->
+    <div class="tabs">
+      <div class="tab" data-tab="partite">Partite</div>
+      <div class="tab" data-tab="classifica">Classifica</div>
+    </div>
+
+    <div class="tabpanes">
+      <!-- Partite -->
+      <div id="tab-partite">
+        <div class="card" style="border:none; padding:0;">
+          <div class="row g-2 mb8">
+            <div>
+              <label>Filtra per giornata</label>
+              <select id="filterMatchday"></select>
+            </div>
+          </div>
+          <div id="matches"></div>
+        </div>
       </div>
 
-      <div class="tabpanes">
-        <!-- Partite -->
-        <div id="tab-partite">
-          <div class="card" style="border:none; padding:0;">
-            <div class="row g-2 mb8">
-              <div>
-                <label>Filtra per giornata</label>
-                <select id="filterMatchday"></select>
-              </div>
-            </div>
-            <div id="matches"></div>
-          </div>
-        </div>
-
-        <!-- Classifica -->
-        <div id="tab-classifica" style="display:none">
-          <div class="card" style="border:none; padding:0;">
-            <div class="muted">Valida per formato Girone</div>
-            <div id="standings"></div>
-          </div>
+      <!-- Classifica -->
+      <div id="tab-classifica" style="display:none">
+        <div class="card" style="border:none; padding:0;">
+          <div class="muted">Valida solo per formato Girone</div>
+          <div id="standings"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- App logic -->
+  <!-- Logica app -->
   <script type="module" src="./app.js"></script>
 </body>
 </html>
