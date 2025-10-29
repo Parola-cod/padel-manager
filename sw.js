@@ -1,4 +1,4 @@
-const CACHE = 'padel-lite-v6'; // bump versione cache per forzare update
+const CACHE = 'padel-lite-v6'; // bumpato da v5 a v6 per forzare refresh
 const STATIC_ASSETS = [
   './offline.html',
   './manifest.webmanifest',
@@ -20,15 +20,20 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.map(k => k !== CACHE && caches.delete(k)));
+    await Promise.all(
+      keys.map(k => k !== CACHE && caches.delete(k))
+    );
     await self.clients.claim();
   })());
 });
 
-// rete-prima per le pagine html, cache-prima per gli asset (icone ecc.)
+// strategia:
+// - per pagine HTML/navigation: rete prima, fallback offline.html
+// - per asset statici (icone ecc.): cache prima
 self.addEventListener('fetch', (event) => {
   const req = event.request;
 
+  // Navigazione / documenti HTML → prova rete, se manca offline
   if (req.mode === 'navigate' || req.destination === 'document') {
     event.respondWith(
       fetch(req).catch(() => caches.match('./offline.html'))
@@ -36,15 +41,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Asset statici → cache-first
   event.respondWith(
-    caches.match(req).then(hit =>
-      hit || fetch(req).then(res => {
+    caches.match(req).then(hit => {
+      if (hit) return hit;
+      return fetch(req).then(res => {
         const copy = res.clone();
+        // mettiamo in cache solo se è uno degli asset statici noti
         if (STATIC_ASSETS.some(p => req.url.includes(p.replace('./','')))) {
           caches.open(CACHE).then(c => c.put(req, copy));
         }
         return res;
-      })
-    )
+      });
+    })
   );
 });
