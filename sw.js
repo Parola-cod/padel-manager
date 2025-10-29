@@ -1,4 +1,4 @@
-const CACHE = 'padel-lite-v5'; // bump versione cache per forzare update
+const CACHE = 'padel-lite-v6'; // bump versione cache per forzare update
 const STATIC_ASSETS = [
   './offline.html',
   './manifest.webmanifest',
