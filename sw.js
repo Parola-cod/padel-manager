@@ -1,65 +1,36 @@
-const CACHE = 'padel-lite-v9';
+// sw.js — Padel Manager BRT (GitHub Pages)
+// Percorsi assoluti e nome cache bumpato per forzare aggiornamento
 
-const STATIC_FILES = [
+const CACHE = 'padel-lite-v11';
+
+const STATIC_ASSETS = [
   '/padel-manager/offline.html',
   '/padel-manager/manifest.webmanifest',
   '/padel-manager/styles.css',
+  '/padel-manager/app.js',                 // utile se vuoi cache anche del JS
   '/padel-manager/pwa-192.png',
   '/padel-manager/pwa-512.png',
   '/padel-manager/pwa-maskable-192.png',
   '/padel-manager/pwa-maskable-512.png',
   '/padel-manager/apple-touch-icon.png',
-  '/padel-manager/logo-padel.png'
+  '/padel-manager/logo-padel.png',
+  '/padel-manager/favicon.ico'             // se lo aggiungi al repo
 ];
 
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-  event.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC_FILES)));
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.map(k => k !== CACHE && caches.delete(k)));
-    await self.clients.claim();
-  })());
-});
-
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-
-  // HTML / navigazione: rete-prima, fallback offline
-  if (req.mode === 'navigate' || req.destination === 'document') {
-    event.respondWith(fetch(req).catch(() => caches.match('/padel-manager/offline.html')));
-    return;
+// Normalizza URL (ignora query string tipo ?v=10)
+function normalize(url) {
+  try {
+    const u = new URL(url);
+    return u.origin + u.pathname;
+  } catch {
+    return url;
   }
-
-  // Asset: cache-prima, poi rete
-  event.respondWith((async () => {
-    const cache = await caches.open(CACHE);
-    const url = new URL(req.url);
-    const urlNoQS = url.origin + url.pathname; // ignora ?v=...
-
-    const match =
-      (await cache.match(urlNoQS)) ||
-      (await cache.match(req));
-
-    if (match) return match;
-
-    const res = await fetch(req);
-    // se è uno degli statici (senza query), mettilo in cache con path “pulito”
-    if (STATIC_FILES.includes(urlNoQS)) {
-      cache.put(urlNoQS, res.clone());
-    }
-    return res;
-  })());
-});
-
+}
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(STATIC_FILES))
+    caches.open(CACHE).then((cache) => cache.addAll(STATIC_ASSETS))
   );
 });
 
@@ -71,12 +42,14 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
-// HTML: rete-prima con fallback offline
-// Asset: cache-prima; se manca, fetch e salva normalizzando l'URL
+// Strategia:
+// - navigazione/HTML: rete-prima, fallback offline
+// - asset: cache-prima; se rete ok, metti in cache la versione normalizzata
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const urlNoQS = normalize(req.url);
 
+  // Documenti / navigazione
   if (req.mode === 'navigate' || req.destination === 'document') {
     event.respondWith(
       fetch(req).catch(() => caches.match('/padel-manager/offline.html'))
@@ -84,73 +57,30 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Asset statici
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
-    const cached = await cache.match(urlNoQS) || await cache.match(req);
+
+    // 1) prova cache (sia url con query che normalizzato)
+    const cached = (await cache.match(urlNoQS)) || (await cache.match(req));
     if (cached) return cached;
 
+    // 2) se non in cache, prova rete
     try {
       const res = await fetch(req);
       const copy = res.clone();
-      // se è uno degli statici (ignorando query), salviamo la versione normalizzata
-      if (STATIC_FILES.includes(urlNoQS)) {
+
+      // se è uno dei nostri asset statici (senza query), salvalo normalizzato
+      if (STATIC_ASSETS.includes(urlNoQS)) {
         await cache.put(urlNoQS, copy);
       }
+
       return res;
     } catch (e) {
-      // se fallisce rete, prova comunque cache “grezza”
-      const fallback = await cache.match(req);
+      // 3) fallback cache (se per caso esiste)
+      const fallback = await cache.match(urlNoQS);
       if (fallback) return fallback;
       throw e;
     }
   })());
-});
-
-
-
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(STATIC_ASSETS))
-  );
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(
-      keys.map(k => k !== CACHE && caches.delete(k))
-    );
-    await self.clients.claim();
-  })());
-});
-
-// strategia:
-// - per pagine HTML/navigation: rete prima, fallback offline.html
-// - per asset statici (icone ecc.): cache prima
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-
-  // Navigazione / documenti HTML → prova rete, se manca offline
-  if (req.mode === 'navigate' || req.destination === 'document') {
-    event.respondWith(
-      fetch(req).catch(() => caches.match('./offline.html'))
-    );
-    return;
-  }
-
-  // Asset statici → cache-first
-  event.respondWith(
-    caches.match(req).then(hit => {
-      if (hit) return hit;
-      return fetch(req).then(res => {
-        const copy = res.clone();
-        // mettiamo in cache solo se è uno degli asset statici noti
-        if (STATIC_ASSETS.some(p => req.url.includes(p.replace('./','')))) {
-          caches.open(CACHE).then(c => c.put(req, copy));
-        }
-        return res;
-      });
-    })
-  );
 });
