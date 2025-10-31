@@ -1,7 +1,10 @@
-const CACHE = 'padel-lite-v6'; // bumpato da v5 a v6 per forzare refresh
+// BUMPA il nome cache per forzare refresh
+const CACHE = 'padel-lite-v7';
+
 const STATIC_ASSETS = [
   './offline.html',
   './manifest.webmanifest',
+  './styles.css',            // ⬅️ AGGIUNTO
   './pwa-192.png',
   './pwa-512.png',
   './pwa-maskable-192.png',
@@ -9,6 +12,7 @@ const STATIC_ASSETS = [
   './apple-touch-icon.png',
   './logo-padel.png'
 ];
+
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
