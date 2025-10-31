@@ -3,85 +3,44 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Padel Manager BRT</title>
+  <title>BRT Padel Bari</title>
 
   <meta name="theme-color" content="#d4111e" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
-  <!-- percorsi relativi per GitHub Pages -->
-  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <!-- PWA -->
   <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
 
-  <style>
-    :root { --c:#d4111e; --c2:#7f1d1d; }
-    * { box-sizing:border-box; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
-    body { margin:0; background:#f7fafc; color:#0f172a; }
-    header { display:flex; gap:12px; align-items:center; padding:16px; background:#fff; box-shadow:0 1px 0 rgba(15,23,42,.06); position:sticky; top:0; z-index:10; }
-    h1 { font-size:18px; margin:0; }
-    .wrap { padding:16px; max-width:980px; margin:0 auto; }
-    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:12px; }
-    .row { display:grid; gap:12px; }
-    @media (min-width:800px) { .row-2 { grid-template-columns:1fr 1fr; } }
-
-    label { font-size:12px; color:#334155; display:block; margin-bottom:4px; }
-    input,select,textarea { width:100%; padding:10px; border-radius:10px; border:1px solid #d1d5db; font-size:14px; }
-    button { background:var(--c); color:#fff; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; font-size:14px; }
-    button.ghost { background:transparent; color:#334155; border:1px solid #cbd5e1; cursor:pointer; }
-    button.danger { background:#fff; color:#b91c1c; border:1px solid #ef4444; }
-
-    table { width:100%; border-collapse:collapse; font-size:14px; }
-    th,td { padding:8px; text-align:left; }
-    thead { background:#f1f5f9; }
-
-    .badge { display:inline-block; padding:2px 8px; border-radius:999px; background:#f1f5f9; font-size:12px; line-height:1.2; }
-    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#ffe4e6; font-size:12px; line-height:1.2; white-space:nowrap; }
-    .pill-ok { background:#fde2e2; }
-    .pill-warn { background:#ffe6cc; }
-    .pill-bye { background:#e2e8f0; }
-
-    .muted { color:#64748b; font-size:12px; }
-    .dim { color:#94a3b8; font-size:12px; }
-    .mb4 { margin-bottom:4px; }
-    .mb8 { margin-bottom:8px; }
-    .mt8 { margin-top:8px; }
-    .mt12 { margin-top:12px; }
-    .mt16 { margin-top:16px; }
-    .flexrow { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:space-between; }
-
-    .tabs { display:flex; border-bottom:1px solid #e2e8f0; gap:8px; margin-top:16px; flex-wrap:wrap; }
-    .tab { background:#fff; color:#334155; border:1px solid #e2e8f0; padding:8px 12px; border-radius:10px 10px 0 0; cursor:pointer; font-size:14px; }
-    .tab.active { background:#fde2e2; color:#7f1d1d; border-bottom-color:transparent; font-weight:600; }
-    .tabpanes { background:#fff; border:1px solid #e2e8f0; border-top:none; border-radius:0 12px 12px 12px; padding:12px; }
-
-    .grid { display:grid; gap:8px; }
-    .g-2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .g-3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
-
-    .match-controls { display:grid; gap:8px; grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .match-date-block label { font-size:11px; color:#64748b; display:block; margin-bottom:4px; }
-
-    .readonlyField { background:#f8fafc; color:#64748b; }
-  </style>
+  <!-- CSS esterno -->
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <header>
-    <img src="./logo-padel.png" alt="Logo" width="36" height="36" style="border-radius:8px" />
-    <div>
-      <h1>BRT Padel Bari</h1>
-      <div class="muted">1° Torneo BRT Padel Bari </div>
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="header-left">
+      <h1 class="app-title">BRT Padel Bari</h1>
+      <div class="subtitle muted">Torneo live </div>
     </div>
-    <div style="margin-left:auto" class="grid g-2" id="topActions">
-      <button id="installBtn" style="display:none">Installa l'app</button>
-      <button id="loginBtn" class="ghost">Entra come admin</button>
-      <button id="logoutBtn" class="ghost" style="display:none" title="Esci dalla modalità Admin">Esci</button>
+
+    <div class="header-right" id="topActions">
+      <button id="installBtn" class="btn ghost" style="display:none">Installa l'app</button>
+      <button id="loginBtn" class="btn ghost">Entra come admin</button>
+      <button id="logoutBtn" class="btn ghost" style="display:none" title="Esci dalla modalità Admin">Esci</button>
     </div>
   </header>
 
+  <!-- LOGO GRANDE SOTTO IL TITOLO (visibile a tutti) -->
+  <div id="logoContainer" class="logo-container">
+    <img id="tournamentLogo" src="./logo-padel.png" alt="Logo Torneo" class="logo-img" />
+  </div>
+
+  <!-- CONTENUTO -->
   <div class="wrap">
     <!-- Banner ruolo -->
-    <div class="card" id="roleBanner" style="border-style:dashed;border-color:#fda4af;background:#fff1f2;"></div>
+    <div class="card role-banner" id="roleBanner"></div>
 
     <!-- SOLO ADMIN: impostazioni torneo -->
     <div id="setupCard" class="card row row-2 mt16">
@@ -104,8 +63,8 @@
         </select>
       </div>
       <div class="row g-2">
-        <button id="genBtn">Genera calendario</button>
-        <button id="resetBtn" class="ghost">Azzera</button>
+        <button id="genBtn" class="btn">Genera calendario</button>
+        <button id="resetBtn" class="btn ghost">Azzera</button>
       </div>
     </div>
 
@@ -124,9 +83,8 @@
               <input id="prating" type="number" min="1" max="5" placeholder="(opzionale)" />
             </div>
           </div>
-          <button id="addPlayer">Aggiungi giocatore</button>
+          <button id="addPlayer" class="btn">Aggiungi giocatore</button>
         </div>
-
         <div class="mt8" id="playersList"></div>
       </div>
 
@@ -147,9 +105,8 @@
             <label>Nome squadra (opzionale)</label>
             <input id="teamName" placeholder="Es. Rossi / Bianchi" />
           </div>
-          <button id="addTeam">Crea squadra</button>
+          <button id="addTeam" class="btn">Crea squadra</button>
         </div>
-
         <div class="mt8" id="teamsList"></div>
       </div>
     </div>
@@ -184,7 +141,7 @@
     </div>
   </div>
 
-  <!-- Logica app -->
+  <!-- JS -->
   <script type="module" src="./app.js"></script>
 </body>
 </html>
