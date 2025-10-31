@@ -1,4 +1,4 @@
-const CACHE = 'padel-lite-v8';
+const CACHE = 'padel-lite-v9';
 
 const STATIC_FILES = [
   '/padel-manager/offline.html',
@@ -12,15 +12,49 @@ const STATIC_FILES = [
   '/padel-manager/logo-padel.png'
 ];
 
-// util: rimuove query (?v=4) per confronti
-function normalize(url) {
-  try {
-    const u = new URL(url);
-    return u.origin + u.pathname;
-  } catch {
-    return url;
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+  event.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC_FILES)));
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => k !== CACHE && caches.delete(k)));
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+
+  // HTML / navigazione: rete-prima, fallback offline
+  if (req.mode === 'navigate' || req.destination === 'document') {
+    event.respondWith(fetch(req).catch(() => caches.match('/padel-manager/offline.html')));
+    return;
   }
-}
+
+  // Asset: cache-prima, poi rete
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    const url = new URL(req.url);
+    const urlNoQS = url.origin + url.pathname; // ignora ?v=...
+
+    const match =
+      (await cache.match(urlNoQS)) ||
+      (await cache.match(req));
+
+    if (match) return match;
+
+    const res = await fetch(req);
+    // se è uno degli statici (senza query), mettilo in cache con path “pulito”
+    if (STATIC_FILES.includes(urlNoQS)) {
+      cache.put(urlNoQS, res.clone());
+    }
+    return res;
+  })());
+});
+
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

@@ -1023,8 +1023,8 @@ function setupPWA() {
   }
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch((err)=>{
-      console.warn("SW register failed:", err);
+  navigator.serviceWorker.register('/padel-manager/sw.js')
+    .catch(err => console.warn('SW register failed:', err));
     });
   }
 }
