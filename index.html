@@ -3,27 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BRT Padel Bari</title>
+  <title>Padel Manager BRT</title>
 
   <meta name="theme-color" content="#d4111e" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
-  <!-- PWA -->
- <link rel="manifest" href="/padel-manager/manifest.webmanifest?v=2" />
-<link rel="apple-touch-icon" href="/padel-manager/apple-touch-icon.png?v=2" />
+  <!-- Manifest e icone -->
+  <link rel="manifest" href="/padel-manager/manifest.webmanifest?v=2" />
+  <link rel="apple-touch-icon" href="/padel-manager/apple-touch-icon.png?v=2" />
 
-
-  <!-- CSS esterno -->
-  <link rel="stylesheet" href="/padel-maneger/styles.css" />
+  <!-- Foglio di stile -->
+  <link rel="stylesheet" href="/padel-manager/styles.css?v=10" />
 </head>
+
 <body>
   <!-- HEADER -->
   <header class="app-header">
     <div class="header-left">
-      <h1 class="app-title">BRT Padel Bari</h1>
-      <div class="subtitle muted">Torneo live </div>
+      <h1 class="app-title">Padel Manager BRT</h1>
+      <div class="subtitle muted">Torneo live • PWA installabile • Admin protetto</div>
     </div>
 
     <div class="header-right" id="topActions">
@@ -33,17 +33,16 @@
     </div>
   </header>
 
-  <!-- LOGO GRANDE SOTTO IL TITOLO (visibile a tutti) -->
+  <!-- LOGO DEL TORNEO -->
   <div id="logoContainer" class="logo-container">
-    <img id="tournamentLogo" src="/padel-manager/logo-padel.png" alt="Logo Torneo" class="logo-img" />
+    <img id="tournamentLogo" src="/padel-manager/logo-padel.png?v=2" alt="Logo Torneo" class="logo-img" />
   </div>
 
   <!-- CONTENUTO -->
   <div class="wrap">
-    <!-- Banner ruolo -->
     <div class="card role-banner" id="roleBanner"></div>
 
-    <!-- SOLO ADMIN: impostazioni torneo -->
+    <!-- SETUP TORNEO (solo admin) -->
     <div id="setupCard" class="card row row-2 mt16">
       <div>
         <label>Nome torneo</label>
@@ -69,9 +68,9 @@
       </div>
     </div>
 
-    <!-- SOLO ADMIN: gestione roster -->
+    <!-- GESTIONE ROSTER (solo admin) -->
     <div id="adminCards" class="row row-2 mt16">
-      <!-- Giocatori -->
+      <!-- GIOCATORI -->
       <div id="playersCard" class="card">
         <div class="row">
           <div class="row g-2">
@@ -89,7 +88,7 @@
         <div class="mt8" id="playersList"></div>
       </div>
 
-      <!-- Squadre -->
+      <!-- SQUADRE -->
       <div id="teamsCard" class="card">
         <div class="row">
           <div class="row g-2">
@@ -112,14 +111,14 @@
       </div>
     </div>
 
-    <!-- Tabs Partite / Classifica -->
+    <!-- TABS -->
     <div class="tabs">
-      <div class="tab" data-tab="partite">Partite</div>
+      <div class="tab active" data-tab="partite">Partite</div>
       <div class="tab" data-tab="classifica">Classifica</div>
     </div>
 
     <div class="tabpanes">
-      <!-- Partite -->
+      <!-- PARTITE -->
       <div id="tab-partite">
         <div class="card" style="border:none; padding:0;">
           <div class="row g-2 mb8">
@@ -132,7 +131,7 @@
         </div>
       </div>
 
-      <!-- Classifica -->
+      <!-- CLASSIFICA -->
       <div id="tab-classifica" style="display:none">
         <div class="card" style="border:none; padding:0;">
           <div class="muted">Valida solo per formato Girone</div>
@@ -142,7 +141,7 @@
     </div>
   </div>
 
-  <!-- JS -->
+  <!-- Script principale -->
   <script type="module" src="/padel-manager/app.js?v=3"></script>
 </body>
 </html>
