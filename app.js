@@ -246,15 +246,44 @@ function maxMatchday(){ return state.matches.reduce((mx,m)=>Math.max(mx,Number(m
 function gradientForMatchday(day){ const mx=maxMatchday()||1; const ratio=mx>1?(day-1)/(mx-1):0; const hue=Math.round(355-330*ratio); return `background:hsl(${hue},90%,90%);`; }
 function matchdayBadge(day){ if(!day) return ''; return `<span class='pill' style="${gradientForMatchday(Number(day))}">📅 Giornata ${day}</span>`; }
 function venueNameById(id){ const v=state.venues.find(v=>String(v.id)===String(id)); return v?v.name:''; }
-function statusBadge(m){
-  if(m.status==='bye') return "<span class='pill pill-bye'>BYE</span>";
-  if(m.status==='completed') return m.confirmed ? "<span class='pill pill-ok'>✅ Convalidata</span>" : "<span class='pill pill-ok'>✅ Completata</span>";
-  const parts=[];
-  if(m.venue_id) parts.push(`📍 ${venueNameById(m.venue_id)}`);
-  if(m.match_time) parts.push(`🕒 ${m.match_time}`);
-  if(m.match_date){ const [Y,M,D]=(m.match_date||'').split('-'); if(Y&&M&&D) parts.push(`${D}/${M}/${Y}`); }
-  return parts.length?`<span class='pill pill-warn'>${parts.join(' • ')}</span>`:`<span class='pill pill-warn'>Da programmare</span>`;
+function venueQueryById(id) {
+  const v = state.venues.find(v => String(v.id) === String(id));
+  if (!v) return '';
+  const q = v.address ? `${v.name}, ${v.address}` : v.name;
+  return encodeURIComponent(q);
 }
+
+function venueLinkHtml(id) {
+  if (!id) return '';
+  const name = venueNameById(id);
+  const q = venueQueryById(id);
+  if (!name || !q) return '';
+  // Usa Google Maps search (funziona sia su iOS che Android/desktop)
+  return `<a href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener" class="map-link">📍 ${name}</a>`;
+}
+
+
+function statusBadge(m) {
+  if (m.status === 'bye') return "<span class='pill pill-bye'>BYE</span>";
+  if (m.status === 'completed') {
+    return m.confirmed
+      ? "<span class='pill pill-ok'>✅ Convalidata</span>"
+      : "<span class='pill pill-ok'>✅ Completata</span>";
+  }
+
+  // scheduled → mostra struttura (cliccabile), orario e data se disponibili
+  const parts = [];
+  if (m.venue_id) parts.push(venueLinkHtml(m.venue_id));
+  if (m.match_time) parts.push(`🕒 ${m.match_time}`);
+  if (m.match_date) {
+    const [Y, M, D] = (m.match_date || '').split('-');
+    if (Y && M && D) parts.push(`${D}/${M}/${Y}`);
+  }
+
+  if (!parts.length) return "<span class='pill pill-warn'>Da programmare</span>";
+  return `<span class='pill pill-warn'>${parts.join(' • ')}</span>`;
+}
+
 function dateBadge(d){ if(!d) return ""; const p=d.split("-"); return p.length===3?`<span class="pill pill-warn">📆 ${p[2]}/${p[1]}/${p[0]}</span>`:`<span class="pill pill-warn">📆 ${d}</span>`; }
 function fillMatchdayFilter(id){ const s=document.getElementById(id); if(!s) return; const mx=maxMatchday(); let opts="<option value=''>Tutte</option>"; for(let d=1; d<=mx; d++) opts+=`<option value='${d}'>Giornata ${d}</option>`; s.innerHTML=opts; }
 function teamNameById(id){ const t=state.teams.find(t=>String(t.id)===String(id)); return t? t.name : (id||''); }

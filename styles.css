@@ -57,5 +57,12 @@ thead { background:#f1f5f9; }
 .tab.active { background:#fde2e2; color:#7f1d1d; border-bottom-color:transparent; font-weight:600; }
 .tabpanes { background:#fff; border:1px solid #e2e8f0; border-top:none; border-radius:0 12px 12px 12px; padding:12px; }
 
+.map-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+
 /* Banner ruolo */
 .role-banner { border-style:dashed; border-color:#fda4af; background:#fff1f2; }
