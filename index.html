@@ -10,24 +10,18 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
-  <!-- Manifest e icone -->
-  <link rel="manifest" href="/padel-manager/manifest.webmanifest?v=2" />
-  <link rel="apple-touch-icon" href="/padel-manager/apple-touch-icon.png?v=2" />
+  <link rel="manifest" href="/padel-manager/manifest.webmanifest?v=3" />
+  <link rel="apple-touch-icon" href="/padel-manager/apple-touch-icon.png?v=3" />
+  <link rel="icon" href="/padel-manager/logo-padel.png" />
 
-  <!-- Foglio di stile -->
-  <link rel="stylesheet" href="/padel-manager/styles.css?v=10" />
-  
-  <style>
-  body { outline: 3px solid #d4111e; }
-</style>
+  <link rel="stylesheet" href="/padel-manager/styles.css?v=11" />
 </head>
-
 <body>
   <!-- HEADER -->
   <header class="app-header">
     <div class="header-left">
       <h1 class="app-title">Padel Manager BRT</h1>
-      <div class="subtitle muted">Torneo live • PWA installabile • Admin protetto</div>
+      <div class="subtitle muted">Torneo live</div>
     </div>
 
     <div class="header-right" id="topActions">
@@ -37,16 +31,15 @@
     </div>
   </header>
 
-  <!-- LOGO DEL TORNEO -->
+  <!-- LOGO DEL TORNEO (visibile a tutti) -->
   <div id="logoContainer" class="logo-container">
-    <img id="tournamentLogo" src="/padel-manager/logo-padel.png?v=2" alt="Logo Torneo" class="logo-img" />
+    <img id="tournamentLogo" src="/padel-manager/logo-padel.png?v=3" alt="Logo Torneo" class="logo-img" />
   </div>
 
-  <!-- CONTENUTO -->
   <div class="wrap">
     <div class="card role-banner" id="roleBanner"></div>
 
-    <!-- SETUP TORNEO (solo admin) -->
+    <!-- SOLO ADMIN: impostazioni torneo -->
     <div id="setupCard" class="card row row-2 mt16">
       <div>
         <label>Nome torneo</label>
@@ -72,9 +65,8 @@
       </div>
     </div>
 
-    <!-- GESTIONE ROSTER (solo admin) -->
+    <!-- SOLO ADMIN: gestione roster -->
     <div id="adminCards" class="row row-2 mt16">
-      <!-- GIOCATORI -->
       <div id="playersCard" class="card">
         <div class="row">
           <div class="row g-2">
@@ -92,7 +84,6 @@
         <div class="mt8" id="playersList"></div>
       </div>
 
-      <!-- SQUADRE -->
       <div id="teamsCard" class="card">
         <div class="row">
           <div class="row g-2">
@@ -145,7 +136,6 @@
     </div>
   </div>
 
-  <!-- Script principale -->
-  <script type="module" src="/padel-manager/app.js?v=3"></script>
+  <script type="module" src="/padel-manager/app.js?v=5"></script>
 </body>
 </html>
