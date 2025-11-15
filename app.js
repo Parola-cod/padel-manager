@@ -1,10 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// ✅ METTI QUI LE TUE CREDENZIALI
+// === CREDENZIALI SUPABASE ===
 const supabaseUrl = "https://qrqpfektlgecupuhvotj.supabase.co";   // es: "https://abcd1234.supabase.co"
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFycXBmZWt0bGdlY3VwdWh2b3RqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzNTMwOTIsImV4cCI6MjA3NjkyOTA5Mn0.Yv168Sr134HY7qi8PWuRByAQNHGkrvnLHmEGfF7dsjQ";
-// ✅ FINE CREDENZIALI
-
 const sb = createClient(supabaseUrl, supabaseKey);
 
 // === STATO ===
@@ -14,7 +12,7 @@ const state = {
   players: [],
   teams: [],
   matches: [],
-  venues: [] // NEW
+  venues: [] // sedi/strutture
 };
 
 const el = (id) => document.getElementById(id);
@@ -152,8 +150,8 @@ function generateRoundRobin(teams, bestOf) {
         status: bye?'bye':'scheduled',
         confirmed:false,
         match_date:null,
-        match_time:null,   // NEW
-        venue_id:null      // NEW
+        match_time:null,
+        venue_id:null
       });
     }
     arr=[arr[0], arr[n-1], ...arr.slice(1,n-1)];
@@ -245,6 +243,9 @@ function renderTeams(){
 function maxMatchday(){ return state.matches.reduce((mx,m)=>Math.max(mx,Number(m.matchday||0)),0); }
 function gradientForMatchday(day){ const mx=maxMatchday()||1; const ratio=mx>1?(day-1)/(mx-1):0; const hue=Math.round(355-330*ratio); return `background:hsl(${hue},90%,90%);`; }
 function matchdayBadge(day){ if(!day) return ''; return `<span class='pill' style="${gradientForMatchday(Number(day))}">📅 Giornata ${day}</span>`; }
+function teamNameById(id){ const t=state.teams.find(t=>String(t.id)===String(id)); return t? t.name : (id||''); }
+
+// === VENUE HELPERS (Mappe) ===
 function venueNameById(id){ const v=state.venues.find(v=>String(v.id)===String(id)); return v?v.name:''; }
 function venueQueryById(id) {
   const v = state.venues.find(v => String(v.id) === String(id));
@@ -252,41 +253,27 @@ function venueQueryById(id) {
   const q = v.address ? `${v.name}, ${v.address}` : v.name;
   return encodeURIComponent(q);
 }
-
 function venueLinkHtml(id) {
   if (!id) return '';
   const name = venueNameById(id);
   const q = venueQueryById(id);
   if (!name || !q) return '';
-  // Usa Google Maps search (funziona sia su iOS che Android/desktop)
   return `<a href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener" class="map-link">📍 ${name}</a>`;
 }
 
-
-function statusBadge(m) {
-  if (m.status === 'bye') return "<span class='pill pill-bye'>BYE</span>";
-  if (m.status === 'completed') {
-    return m.confirmed
-      ? "<span class='pill pill-ok'>✅ Convalidata</span>"
-      : "<span class='pill pill-ok'>✅ Completata</span>";
-  }
-
-  // scheduled → mostra struttura (cliccabile), orario e data se disponibili
-  const parts = [];
-  if (m.venue_id) parts.push(venueLinkHtml(m.venue_id));
-  if (m.match_time) parts.push(`🕒 ${m.match_time}`);
-  if (m.match_date) {
-    const [Y, M, D] = (m.match_date || '').split('-');
-    if (Y && M && D) parts.push(`${D}/${M}/${Y}`);
-  }
-
-  if (!parts.length) return "<span class='pill pill-warn'>Da programmare</span>";
-  return `<span class='pill pill-warn'>${parts.join(' • ')}</span>`;
+// Badge stato (mostra struttura cliccabile + orario + data)
+function statusBadge(m){
+  if(m.status==='bye') return "<span class='pill pill-bye'>BYE</span>";
+  if(m.status==='completed') return m.confirmed ? "<span class='pill pill-ok'>✅ Convalidata</span>" : "<span class='pill pill-ok'>✅ Completata</span>";
+  const parts=[];
+  if(m.venue_id) parts.push(venueLinkHtml(m.venue_id));
+  if(m.match_time) parts.push(`🕒 ${m.match_time}`);
+  if(m.match_date){ const [Y,M,D]=(m.match_date||'').split('-'); if(Y&&M&&D) parts.push(`${D}/${M}/${Y}`); }
+  return parts.length?`<span class='pill pill-warn'>${parts.join(' • ')}</span>`:`<span class='pill pill-warn'>Da programmare</span>`;
 }
 
 function dateBadge(d){ if(!d) return ""; const p=d.split("-"); return p.length===3?`<span class="pill pill-warn">📆 ${p[2]}/${p[1]}/${p[0]}</span>`:`<span class="pill pill-warn">📆 ${d}</span>`; }
 function fillMatchdayFilter(id){ const s=document.getElementById(id); if(!s) return; const mx=maxMatchday(); let opts="<option value=''>Tutte</option>"; for(let d=1; d<=mx; d++) opts+=`<option value='${d}'>Giornata ${d}</option>`; s.innerHTML=opts; }
-function teamNameById(id){ const t=state.teams.find(t=>String(t.id)===String(id)); return t? t.name : (id||''); }
 function renderSetInputs(m,canEdit){
   const arr=Array.isArray(m.sets)?m.sets:[{a:'',b:''},{a:'',b:''},{a:'',b:''}];
   return arr.map((s,i)=>`
@@ -358,29 +345,86 @@ function renderMatches(){
     </div>`).join('');
   wireMatchButtons();
 }
+
+// === STANDINGS (Punti = set vinti) ===
 function computeWinner(m){
   if(m.status==='bye') return m.a_id||m.b_id||null;
   let a=0,b=0; const limit=m.best_of_set===1?1:3;
   for(let i=0;i<limit;i++){ const s=m.sets&&m.sets[i]; if(!s) continue; const sa=Number(s.a), sb=Number(s.b); if(!Number.isFinite(sa)||!Number.isFinite(sb)) continue; if(sa>sb)a++; else if(sb>sa)b++; }
   if(a===0&&b===0) return null; if(a===b) return 'draw'; return a>b?m.a_id:m.b_id;
 }
+
 function computeStandings(){
-  const t=new Map(); state.teams.forEach(T=> t.set(String(T.id),{team:T,played:0,won:0,lost:0,setsFor:0,setsAgainst:0,gamesFor:0,gamesAgainst:0,points:0}));
-  state.matches.forEach(m=>{
-    if(m.status==='bye'){ const tid=m.a_id||m.b_id; if(!tid) return; const r=t.get(String(tid)); if(!r) return; r.played++; r.won++; r.points+=3; return; }
-    if(m.status!=='completed') return;
-    const w=computeWinner(m); if(!w) return;
-    const a=t.get(String(m.a_id)), b=t.get(String(m.b_id)); if(!a||!b) return;
-    const limit=m.best_of_set===1?1:3;
-    for(let i=0;i<limit;i++){ const s=m.sets&&m.sets[i]; if(!s) continue; const sa=Number(s.a), sb=Number(s.b); if(!Number.isFinite(sa)||!Number.isFinite(sb)) continue;
-      a.gamesFor+=sa; a.gamesAgainst+=sb; b.gamesFor+=sb; b.gamesAgainst+=sa;
-      if(sa>sb){ a.setsFor++; b.setsAgainst++; } else if(sb>sa){ b.setsFor++; a.setsAgainst++; }
+  // Ogni set vinto = 1 punto
+  const t = new Map();
+  state.teams.forEach(T => t.set(String(T.id), {
+    team: T,
+    played: 0,
+    won: 0,
+    lost: 0,
+    setsFor: 0,
+    setsAgainst: 0,
+    gamesFor: 0,
+    gamesAgainst: 0,
+    points: 0 // = setsFor
+  }));
+
+  state.matches.forEach(m => {
+    // BYE: nessun punto (nessun set giocato)
+    if (m.status === 'bye') {
+      const tid = m.a_id || m.b_id;
+      if (!tid) return;
+      const r = t.get(String(tid));
+      if (!r) return;
+      r.played++;
+      r.won++; // opzionale: conteggiamo vittoria "tecnica"
+      return;
     }
+
+    if (m.status !== 'completed') return;
+
+    const a = t.get(String(m.a_id));
+    const b = t.get(String(m.b_id));
+    if (!a || !b) return;
+
+    const limit = m.best_of_set === 1 ? 1 : 3;
+    let aSets = 0, bSets = 0;
+
+    for (let i = 0; i < limit; i++) {
+      const s = m.sets && m.sets[i];
+      if (!s) continue;
+      const sa = Number(s.a), sb = Number(s.b);
+      if (!Number.isFinite(sa) || !Number.isFinite(sb)) continue;
+
+      // somma giochi
+      a.gamesFor += sa; a.gamesAgainst += sb;
+      b.gamesFor += sb; b.gamesAgainst += sa;
+
+      // set vinti
+      if (sa > sb) { a.setsFor++; b.setsAgainst++; aSets++; }
+      else if (sb > sa) { b.setsFor++; a.setsAgainst++; bSets++; }
+    }
+
     a.played++; b.played++;
-    if(String(w)===String(m.a_id)){ a.won++; a.points+=3; b.lost++; } else { b.won++; b.points+=3; a.lost++; }
+
+    // vittorie/sconfitte solo informative
+    if (aSets > bSets) { a.won++; b.lost++; }
+    else if (bSets > aSets) { b.won++; a.lost++; }
   });
-  return [...t.values()].sort((x,y)=> y.points-x.points || (y.setsFor-y.setsAgainst)-(x.setsFor-x.setsAgainst) || (y.gamesFor-y.gamesAgainst)-(x.gamesFor-x.gamesAgainst) || y.won-x.won);
+
+  // punti = set vinti
+  t.forEach(r => { r.points = r.setsFor; });
+
+  // Ordina: punti (set vinti) -> diff set -> diff game -> V vinte
+  return [...t.values()].sort(
+    (x, y) =>
+      (y.points - x.points) ||
+      ((y.setsFor - y.setsAgainst) - (x.setsFor - x.setsAgainst)) ||
+      ((y.gamesFor - y.gamesAgainst) - (x.gamesFor - x.gamesAgainst)) ||
+      (y.won - x.won)
+  );
 }
+
 function renderStandings(){
   const box=el('standings'); if(!box) return;
   if((state.tournament.format??"Girone")!=="Girone"){ box.innerHTML='<div class="muted">Disponibile solo per il formato Girone.</div>'; return; }
@@ -388,7 +432,12 @@ function renderStandings(){
   box.innerHTML = `
     <div style='overflow-x:auto'>
       <table>
-        <thead><tr><th>#</th><th>Squadra</th><th>G</th><th>V</th><th>P</th><th>Set +/-</th><th>Game +/-</th><th>Punti</th></tr></thead>
+        <thead>
+          <tr>
+            <th>#</th><th>Squadra</th><th>G</th><th>V</th><th>P</th>
+            <th>Set +/-</th><th>Game +/-</th><th>Punti (set vinti)</th>
+          </tr>
+        </thead>
         <tbody>
           ${rows.map((r,i)=>`
             <tr>
